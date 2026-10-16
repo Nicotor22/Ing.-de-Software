@@ -139,3 +139,27 @@ class PrestamoObra(Base):
     id_obra: Mapped[int] = mapped_column(ForeignKey("obra.id_obra"), primary_key=True)
 
     obra: Mapped[Obra] = relationship()
+
+class Exposicion(Base):
+    __tablename__ = "exposicion"
+
+    id: Mapped[int] = mapped_column("id_exposicion", primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(200))
+    fecha_inicio: Mapped[date] = mapped_column(Date)
+    fecha_fin: Mapped[date] = mapped_column(Date)
+    id_ubicacion: Mapped[int] = mapped_column(ForeignKey("ubicacion.id_ubicacion"))  # la sala
+    publicada_virtual: Mapped[bool] = mapped_column(Boolean, default=False)  # CU-14
+
+    ubicacion: Mapped[Ubicacion] = relationship()
+    obras: Mapped[list["ExposicionObra"]] = relationship(cascade="all, delete-orphan")
+
+
+class ExposicionObra(Base):
+    __tablename__ = "exposicion_obra"
+
+    id_exposicion: Mapped[int] = mapped_column(
+        ForeignKey("exposicion.id_exposicion"), primary_key=True
+    )
+    id_obra: Mapped[int] = mapped_column(ForeignKey("obra.id_obra"), primary_key=True)
+
+    obra: Mapped[Obra] = relationship()

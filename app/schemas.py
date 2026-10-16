@@ -204,3 +204,60 @@ class PrestamoOut(BaseModel):
     condiciones: str
     estado: EstadoPrestamo
     obras: list[ObraEnPrestamoOut]
+
+class DevolucionIn(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    fecha_devolucion_real: date
+    responsable: str = Field(min_length=1, max_length=150)  # provisorio hasta CU-15
+
+class ExposicionIn(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    nombre: str = Field(min_length=1, max_length=200)
+    fecha_inicio: date
+    fecha_fin: date
+    id_ubicacion: int
+    obra_ids: list[int] = Field(default_factory=list)
+    coleccion_ids: list[int] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validar_exposicion(self):
+        if self.fecha_fin < self.fecha_inicio:
+            raise ValueError("La fecha de fin no puede ser anterior a la de inicio")
+        if not self.obra_ids and not self.coleccion_ids:
+            raise ValueError("Hay que seleccionar al menos una obra o una colección")
+        return self
+
+
+class ObraEnExposicionOut(BaseModel):
+    id_obra: int
+    titulo: str | None = None
+
+
+class ObraExcluidaOut(BaseModel):
+    id_obra: int
+    titulo: str | None = None
+    motivo: str
+
+
+class ExposicionOut(BaseModel):
+    id: int
+    nombre: str
+    fecha_inicio: date
+    fecha_fin: date
+    id_ubicacion: int
+    publicada_virtual: bool
+    obras: list[ObraEnExposicionOut]
+
+
+class ValidacionExposicionOut(BaseModel):
+    incluidas: list[ObraEnExposicionOut]
+    excluidas: list[ObraExcluidaOut]
+    advertencias: list[str]
+
+
+class ExposicionCreadaOut(BaseModel):
+    exposicion: ExposicionOut
+    excluidas: list[ObraExcluidaOut]
+    advertencias: list[str]

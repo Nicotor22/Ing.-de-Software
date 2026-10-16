@@ -3,11 +3,12 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from ..models import Coleccion, EstadoPrestamo, Obra, Prestamo, PrestamoObra, Ubicacion
-from ..schemas import PrestamoIn
+from ..models import EstadoPrestamo, Obra, Prestamo, PrestamoObra, Ubicacion, Movimiento
+from ..schemas import PrestamoIn, DevolucionIn
 from . import documentos as docs
 from .disponibilidad import en_restauracion, prestamo_activo
 from .movimientos import aplicar_movimiento
+from .seleccion import resolver_obras
 
 
 def a_dto(p: Prestamo) -> dict:
@@ -32,20 +33,6 @@ def obtener_prestamo(db: Session, prestamo_id: int) -> Prestamo:
     return prestamo
 
 
-def _resolver_obras(db: Session, datos: PrestamoIn) -> list[int]:
-    """Paso 1: obras sueltas + las obras de cada colección (sin repetidas)."""
-    ids = dict.fromkeys(datos.obra_ids)  # dict para conservar el orden y evitar repetidas
-    for cid in dict.fromkeys(datos.coleccion_ids):
-        coleccion = db.get(Coleccion, cid)
-        if coleccion is None:
-            raise HTTPException(status_code=404, detail=f"La colección {cid} no existe")
-        for obra in coleccion.obras:
-            ids[obra.id] = None
-    if not ids:
-        raise HTTPException(status_code=422, detail="La selección no incluye ninguna obra")
-    return list(ids)
-
-
 def _no_disponibles(db: Session, obras: list[Obra]) -> list[dict]:
     """Paso 3: ni préstamo activo ni restauración."""
     resultado = []
@@ -65,7 +52,7 @@ def registrar_prestamo(db: Session, datos: PrestamoIn) -> Prestamo:
     if db.get(Ubicacion, datos.id_ubicacion_destino) is None:
         raise HTTPException(status_code=404, detail="La ubicación de destino no existe")
 
-    ids = _resolver_obras(db, datos)
+    ids = resolver_obras(db, datos.obra_ids, datos.coleccion_ids)
 
     # Se bloquean las filas de las obras (siempre en el mismo orden) y RECIÉN DESPUÉS
     # se mira la disponibilidad: así dos préstamos simultáneos no toman la misma obra
@@ -124,6 +111,65 @@ def registrar_prestamo(db: Session, datos: PrestamoIn) -> Prestamo:
         raise HTTPException(
             status_code=500,
             detail="No se pudo registrar el préstamo; no se guardó ningún dato",
+        )
+    db.refresh(prestamo)
+    return prestamo
+
+def _ubicacion_anterior(db: Session, id_obra: int) -> int:
+    """
+    Mientras la obra está prestada nadie puede moverla a mano (CU-04), así que su último
+    movimiento es el de salida del préstamo: su ORIGEN es la ubicación a la que vuelve.
+    """
+    ultimo = db.scalars(
+        select(Movimiento).where(Movimiento.id_obra == id_obra).order_by(Movimiento.id.desc())
+    ).first()
+    if ultimo is None:
+        raise HTTPException(
+            status_code=500,
+            detail=f"La obra {id_obra} no tiene movimientos: no se puede saber su ubicación anterior",
+        )
+    return ultimo.id_ubicacion_origen
+
+
+def registrar_devolucion(db: Session, prestamo_id: int, datos: DevolucionIn) -> Prestamo:
+    # Se bloquea la fila del préstamo: si llegan dos devoluciones a la vez, la segunda
+    # espera a la primera y después ve que el préstamo ya no está activo
+    prestamo = db.get(Prestamo, prestamo_id, with_for_update=True)
+    if prestamo is None:
+        raise HTTPException(status_code=404, detail="El préstamo no existe")
+
+    # Paso 3 (extensión): el préstamo tiene que estar activo
+    if prestamo.estado != EstadoPrestamo.ACTIVO:
+        raise HTTPException(
+            status_code=409, detail="El préstamo ya no está activo (fue devuelto antes)"
+        )
+    if datos.fecha_devolucion_real < prestamo.fecha_inicio:
+        raise HTTPException(
+            status_code=422,
+            detail="La fecha real de devolución no puede ser anterior a la de inicio del préstamo",
+        )
+
+    ids = [po.id_obra for po in prestamo.obras]
+    obras = list(
+        db.scalars(select(Obra).where(Obra.id.in_(ids)).order_by(Obra.id).with_for_update())
+    )
+
+    try:
+        for obra in obras:
+            destino = _ubicacion_anterior(db, obra.id)  # se lee ANTES de registrar el regreso
+            # <<include>> Registrar Movimiento (automático, sin commit propio)
+            aplicar_movimiento(
+                db, obra, destino,
+                f"Devolución del préstamo n.º {prestamo.id}", datos.responsable,
+            )
+        prestamo.estado = EstadoPrestamo.FINALIZADO
+        prestamo.fecha_devolucion_real = datos.fecha_devolucion_real
+        db.commit()
+    except SQLAlchemyError:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail="No se pudo registrar la devolución; el préstamo sigue activo",
         )
     db.refresh(prestamo)
     return prestamo
