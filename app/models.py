@@ -163,3 +163,30 @@ class ExposicionObra(Base):
     id_obra: Mapped[int] = mapped_column(ForeignKey("obra.id_obra"), primary_key=True)
 
     obra: Mapped[Obra] = relationship()
+
+class EstadoRestauracion(str, enum.Enum):
+    ACTIVA = "ACTIVA"
+    FINALIZADA = "FINALIZADA"
+
+
+class Restauracion(Base):
+    __tablename__ = "restauracion"
+
+    id: Mapped[int] = mapped_column("id_restauracion", primary_key=True)
+    id_obra: Mapped[int] = mapped_column(ForeignKey("obra.id_obra"))
+    fecha_inicio: Mapped[date] = mapped_column(Date)
+    fecha_prevista_devolucion: Mapped[date] = mapped_column(Date)
+    tecnica_aplicada: Mapped[str] = mapped_column(String(200))
+    responsable: Mapped[str] = mapped_column(String(150))  # interno o restaurador externo
+    # NULL = informe pendiente
+    id_documento_informe: Mapped[int | None] = mapped_column(
+        ForeignKey("documento.id_documento"), nullable=True
+    )
+    # --- Propuestas (las pide el CU-10; no están en el modelo de tu equipo todavía) ---
+    estado: Mapped[EstadoRestauracion] = mapped_column(
+        SAEnum(EstadoRestauracion, native_enum=False, length=20),
+        default=EstadoRestauracion.ACTIVA,
+    )
+    fecha_regreso_real: Mapped[date | None] = mapped_column(Date, nullable=True)
+
+    informe: Mapped[Documento | None] = relationship()

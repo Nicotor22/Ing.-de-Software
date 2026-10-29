@@ -2,7 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from datetime import date
 
-from ..models import EstadoPrestamo, Prestamo, PrestamoObra
+from ..models import EstadoPrestamo, Prestamo, PrestamoObra, EstadoRestauracion, Restauracion
 
 
 def prestamo_activo(db: Session, id_obra: int) -> Prestamo | None:
@@ -15,11 +15,16 @@ def prestamo_activo(db: Session, id_obra: int) -> Prestamo | None:
 
 
 def restauracion_en_curso(db: Session, id_obra: int) -> dict | None:
-    """
-    Si la obra está en restauración devuelve {"fecha_prevista": date | None}; si no, None.
-    TODO (CU-09): consultar la tabla de restauraciones cuando exista.
-    """
-    return None
+    """Si la obra tiene una restauración activa devuelve su fecha prevista; si no, None."""
+    restauracion = db.scalars(
+        select(Restauracion).where(
+            Restauracion.id_obra == id_obra,
+            Restauracion.estado == EstadoRestauracion.ACTIVA,
+        )
+    ).first()
+    if restauracion is None:
+        return None
+    return {"fecha_prevista": restauracion.fecha_prevista_devolucion}
 
 
 def en_restauracion(db: Session, id_obra: int) -> bool:

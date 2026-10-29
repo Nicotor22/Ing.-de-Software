@@ -1,6 +1,6 @@
 from datetime import date
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-from .models import EstadoPrestamo, TipoPrestamo
+from .models import EstadoPrestamo, TipoPrestamo, EstadoRestauracion
 
 FORMATOS_DOCUMENTO = {"JPG", "PNG", "PDF"}
 
@@ -261,3 +261,69 @@ class ExposicionCreadaOut(BaseModel):
     exposicion: ExposicionOut
     excluidas: list[ObraExcluidaOut]
     advertencias: list[str]
+
+class RestauracionIn(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    id_obra: int
+    fecha_inicio: date
+    fecha_prevista_devolucion: date
+    tecnica_aplicada: str = Field(min_length=1, max_length=200)
+    responsable: str = Field(min_length=1, max_length=150)
+    id_ubicacion_destino: int  # taller o laboratorio al que va la obra
+    informe: ArchivoIn | None = None  # sin informe = "informe pendiente"
+
+    @model_validator(mode="after")
+    def fechas_coherentes(self):
+        if self.fecha_prevista_devolucion < self.fecha_inicio:
+            raise ValueError("La fecha prevista de devolución no puede ser anterior a la de inicio")
+        return self
+
+
+class RestauracionOut(BaseModel):
+    id: int
+    id_obra: int
+    fecha_inicio: date
+    fecha_prevista_devolucion: date
+    fecha_regreso_real: date | None = None
+    tecnica_aplicada: str
+    responsable: str
+    estado: EstadoRestauracion
+    id_documento_informe: int | None = None
+    informe_pendiente: bool
+
+class RegresoRestauracionIn(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    fecha_regreso_real: date
+    id_ubicacion_destino: int  # sala o depósito al que vuelve la obra
+    responsable: str = Field(min_length=1, max_length=150)  # provisorio hasta CU-15
+
+class DigitalizacionIn(ArchivoIn):
+    # PROVISORIO: solo sirven para validar la calidad y no se guardan (Documento no tiene
+    # esas columnas). Cuando el backend reciba el archivo, los va a medir él.
+    ancho_px: int = Field(gt=0)
+    alto_px: int = Field(gt=0)
+
+class ReporteFilaOut(BaseModel):
+    obra: str
+    autores: str
+    periodo: str
+    tecnica: str
+    estado_conservacion: str
+    digitalizada: str
+
+
+class ReporteOut(BaseModel):
+    vacio: bool
+    mensaje: str | None = None
+    advertencias: list[str] = []
+    filtros: dict[str, str | int] = {}
+    generado_en: str
+    total: int
+    filas: list[ReporteFilaOut]
+
+class PublicarVirtualIn(BaseModel):
+    # False: si faltan obras por digitalizar, se advierte y no se publica.
+    # True: se publica solo con las obras digitalizadas.
+    solo_digitalizadas: bool = False

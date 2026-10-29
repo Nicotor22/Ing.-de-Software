@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from ..models import Movimiento, Obra, Ubicacion
 from ..schemas import MovimientoIn
-from .disponibilidad import prestamo_activo
+from .disponibilidad import prestamo_activo, en_restauracion
 
 
 def aplicar_movimiento(
@@ -37,7 +37,12 @@ def _validar_obra_movible(db: Session, obra: Obra) -> None:
             detail="La obra está prestada: su ubicación la gestiona el préstamo "
                    "y no puede moverse manualmente",
         )
-    # TODO (CU-08): impedir también el movimiento manual si está en restauración.
+    if en_restauracion(db, obra.id):
+        raise HTTPException(
+            status_code=409,
+            detail="La obra está en restauración: su ubicación la gestiona la restauración "
+                   "y no puede moverse manualmente",
+        )
 
 
 def _guardar(db: Session) -> None:

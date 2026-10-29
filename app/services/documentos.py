@@ -8,6 +8,8 @@ from ..schemas import DocumentoIn
 
 TIPO_ACTA = "Acta de Donación"  # tiene que coincidir con el nombre precargado
 TIPO_PRESTAMO = "Documentación de Préstamo"  # tiene que coincidir con el nombre precargado
+TIPO_INFORME = "Informe de Restauración"  # tiene que coincidir con el nombre precargado
+TIPO_FOTO = "Foto"  # tiene que coincidir con el nombre precargado
 
 
 def a_dto(doc: Documento) -> dict:
