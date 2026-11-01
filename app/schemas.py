@@ -327,3 +327,10 @@ class PublicarVirtualIn(BaseModel):
     # False: si faltan obras por digitalizar, se advierte y no se publica.
     # True: se publica solo con las obras digitalizadas.
     solo_digitalizadas: bool = False
+
+class UsuarioOut(BaseModel):
+    id: int
+    id_externo: str
+    nombre: str | None = None
+    id_rol: int
+    rol: str

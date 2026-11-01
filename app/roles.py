@@ -1,0 +1,4 @@
+ROL_ADMIN = "Administrador"
+ROL_INVESTIGADOR = "Investigador"
+ROL_PUBLICO = "Público General"
+ROLES_SISTEMA = (ROL_ADMIN, ROL_INVESTIGADOR, ROL_PUBLICO)

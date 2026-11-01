@@ -190,3 +190,21 @@ class Restauracion(Base):
     fecha_regreso_real: Mapped[date | None] = mapped_column(Date, nullable=True)
 
     informe: Mapped[Documento | None] = relationship()
+
+class Rol(Base):
+    __tablename__ = "rol"
+
+    id: Mapped[int] = mapped_column("id_rol", primary_key=True)
+    nombre: Mapped[str] = mapped_column(String(50), unique=True)
+    vigente: Mapped[bool] = mapped_column(Boolean, default=True)
+
+
+class Usuario(Base):
+    __tablename__ = "usuario"
+
+    id: Mapped[int] = mapped_column("id_usuario", primary_key=True)
+    id_externo: Mapped[str] = mapped_column(String(36), unique=True)  # el "sub" de Authly
+    nombre: Mapped[str | None] = mapped_column(String(150), nullable=True)
+    id_rol: Mapped[int] = mapped_column(ForeignKey("rol.id_rol"))  # obligatorio
+
+    rol: Mapped[Rol] = relationship()

@@ -1,7 +1,8 @@
 from sqlalchemy import select
 
 from .database import SessionLocal
-from .models import TipoDocumento
+from .models import TipoDocumento, Rol
+from.roles import ROLES_SISTEMA
 
 TIPOS_DOCUMENTO = [
     "Foto",
@@ -21,4 +22,13 @@ def precargar_tipos_documento() -> None:
         for nombre in TIPOS_DOCUMENTO:
             if nombre not in existentes:
                 db.add(TipoDocumento(nombre=nombre))
+        db.commit()
+
+def precargar_roles() -> None:
+    """SOLO DESARROLLO. En la base real los precarga el script de tu grupo."""
+    with SessionLocal() as db:
+        existentes = set(db.scalars(select(Rol.nombre)))
+        for nombre in ROLES_SISTEMA:
+            if nombre not in existentes:
+                db.add(Rol(nombre=nombre, vigente=True))
         db.commit()
