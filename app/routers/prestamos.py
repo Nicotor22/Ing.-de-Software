@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 
 from ..database import get_db
-from ..models import EstadoPrestamo, Prestamo
-from ..schemas import PrestamoIn, PrestamoOut, DevolucionIn
+from ..models import Prestamo
+from ..schemas import PrestamoIn, PrestamoOut, DevolucionIn, EstadoPrestamo
 from ..services import prestamos as servicio
 
 router = APIRouter(prefix="/prestamos", tags=["CU-06 - Préstamos"])

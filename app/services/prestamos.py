@@ -3,8 +3,8 @@ from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from ..models import EstadoPrestamo, Obra, Prestamo, PrestamoObra, Ubicacion, Movimiento
-from ..schemas import PrestamoIn, DevolucionIn
+from ..models import Obra, Prestamo, PrestamoObra, Ubicacion, Movimiento
+from ..schemas import PrestamoIn, DevolucionIn, EstadoPrestamo
 from . import documentos as docs
 from .disponibilidad import en_restauracion, prestamo_activo
 from .movimientos import aplicar_movimiento
@@ -21,7 +21,11 @@ def a_dto(p: Prestamo) -> dict:
         "fecha_devolucion_prevista": p.fecha_devolucion_prevista,
         "fecha_devolucion_real": p.fecha_devolucion_real,
         "condiciones": p.condiciones,
-        "estado": p.estado,
+        "estado": (
+            EstadoPrestamo.ACTIVO
+            if p.fecha_devolucion_real is None
+            else EstadoPrestamo.FINALIZADO
+        ),
         "obras": [{"id_obra": po.id_obra, "titulo": po.obra.titulo} for po in p.obras],
     }
 
@@ -88,7 +92,6 @@ def registrar_prestamo(db: Session, datos: PrestamoIn) -> Prestamo:
         fecha_inicio=datos.fecha_inicio,
         fecha_devolucion_prevista=datos.fecha_devolucion_prevista,
         condiciones=datos.condiciones,
-        estado=EstadoPrestamo.ACTIVO,
     )
     prestamo.obras = [PrestamoObra(id_obra=o.id) for o in obras]
 
@@ -139,9 +142,10 @@ def registrar_devolucion(db: Session, prestamo_id: int, datos: DevolucionIn) -> 
         raise HTTPException(status_code=404, detail="El préstamo no existe")
 
     # Paso 3 (extensión): el préstamo tiene que estar activo
-    if prestamo.estado != EstadoPrestamo.ACTIVO:
+    if prestamo.fecha_devolucion_real is not None:
         raise HTTPException(
-            status_code=409, detail="El préstamo ya no está activo (fue devuelto antes)"
+            status_code=409,
+            detail="El préstamo ya no está activo (fue devuelto antes)"
         )
     if datos.fecha_devolucion_real < prestamo.fecha_inicio:
         raise HTTPException(
@@ -162,7 +166,6 @@ def registrar_devolucion(db: Session, prestamo_id: int, datos: DevolucionIn) -> 
                 db, obra, destino,
                 f"Devolución del préstamo n.º {prestamo.id}", datos.responsable,
             )
-        prestamo.estado = EstadoPrestamo.FINALIZADO
         prestamo.fecha_devolucion_real = datos.fecha_devolucion_real
         db.commit()
     except SQLAlchemyError:

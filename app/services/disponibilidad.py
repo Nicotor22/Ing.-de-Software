@@ -2,14 +2,19 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 from datetime import date
 
-from ..models import EstadoPrestamo, Prestamo, PrestamoObra, EstadoRestauracion, Restauracion
+from ..models import Prestamo, PrestamoObra, Restauracion
+from ..schemas import EstadoPrestamo, EstadoRestauracion
 
 
 def prestamo_activo(db: Session, id_obra: int) -> Prestamo | None:
     consulta = (
         select(Prestamo)
         .join(PrestamoObra, PrestamoObra.id_prestamo == Prestamo.id)
-        .where(PrestamoObra.id_obra == id_obra, Prestamo.estado == EstadoPrestamo.ACTIVO)
+        .where(
+            PrestamoObra.id_obra == id_obra,
+            Prestamo.fecha_devolucion_real.is_(None),
+            Prestamo.fecha_baja.is_(None),
+        )
     )
     return db.scalars(consulta).first()
 

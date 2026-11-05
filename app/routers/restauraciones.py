@@ -4,8 +4,8 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 
 from ..database import get_db
-from ..models import EstadoRestauracion, Restauracion
-from ..schemas import ArchivoIn, RestauracionIn, RestauracionOut, RegresoRestauracionIn
+from ..models import Restauracion
+from ..schemas import ArchivoIn, RestauracionIn, RestauracionOut, RegresoRestauracionIn, EstadoRestauracion
 from ..services import restauraciones as servicio
 
 router = APIRouter(prefix="/restauraciones", tags=["CU-09 - Restauraciones"])

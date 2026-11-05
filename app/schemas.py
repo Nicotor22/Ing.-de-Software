@@ -1,9 +1,22 @@
+import enum
+
 from datetime import date
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
-from .models import EstadoPrestamo, TipoPrestamo, EstadoRestauracion
+from .models import EstadoConservacion, TipoPrestamo, ModoIngreso
 from uuid import UUID
 
+
 FORMATOS_DOCUMENTO = {"JPG", "PNG", "PDF"}
+
+
+class EstadoPrestamo(str, enum.Enum):
+    ACTIVO = "ACTIVO"
+    FINALIZADO = "FINALIZADO"
+
+
+class EstadoRestauracion(str, enum.Enum):
+    ACTIVA = "ACTIVA"
+    FINALIZADA = "FINALIZADA"
 
 
 class AutorIn(BaseModel):
@@ -51,13 +64,13 @@ class ObraIn(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     titulo: str = Field(min_length=1, max_length=255)
-    tecnica: str | None = Field(default=None, max_length=100)
+    tecnica: str | None = Field(default=None, max_length=150)
     alto: float | None = Field(default=None, gt=0)
     ancho: float | None = Field(default=None, gt=0)
     profundidad: float | None = Field(default=None, gt=0)
     periodo: str | None = Field(default=None, max_length=100)
-    estado_conservacion: str | None = Field(default=None, max_length=100)
-    modo_ingreso: str | None = Field(default=None, max_length=100)
+    estado_conservacion: EstadoConservacion
+    modo_ingreso: ModoIngreso
     id_ubicacion_actual: UUID
     autores: list[AutorObraIn] = Field(min_length=1)  # extensión: al menos un autor
 
@@ -77,8 +90,8 @@ class ObraOut(BaseModel):
     ancho: float | None = None
     profundidad: float | None = None
     periodo: str | None = None
-    estado_conservacion: str | None = None
-    modo_ingreso: str | None = None
+    estado_conservacion: EstadoConservacion
+    modo_ingreso: ModoIngreso
     digitalizada: bool
     id_coleccion: UUID | None = None
     id_ubicacion_actual: UUID
@@ -89,7 +102,7 @@ class MovimientoIn(BaseModel):
 
     id_obra: UUID
     id_ubicacion_destino: UUID
-    motivo: str = Field(min_length=1, max_length=300)
+    motivo: str = Field(min_length=1, max_length=255)
     responsable: str = Field(min_length=1, max_length=150)
 
 

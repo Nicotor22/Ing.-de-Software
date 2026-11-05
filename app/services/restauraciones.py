@@ -2,8 +2,8 @@ from fastapi import HTTPException
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
-from ..models import EstadoRestauracion, Obra, Restauracion, Ubicacion
-from ..schemas import ArchivoIn, RestauracionIn, RegresoRestauracionIn
+from ..models import Obra, Restauracion, Ubicacion
+from ..schemas import ArchivoIn, RestauracionIn, RegresoRestauracionIn, EstadoRestauracion
 from . import documentos as docs
 from .disponibilidad import en_restauracion, prestamo_activo
 from .movimientos import aplicar_movimiento
