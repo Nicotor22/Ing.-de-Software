@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from uuid import UUID
 
 from ..database import get_db
 from ..models import TipoDocumento
@@ -21,5 +22,5 @@ def vincular_documento(datos: DocumentoIn, db: Session = Depends(get_db)):
 
 
 @router.get("/documentos", response_model=list[DocumentoOut])
-def listar_documentos(id_obra: int, db: Session = Depends(get_db)):
+def listar_documentos(id_obra: UUID, db: Session = Depends(get_db)):
     return [servicio.a_dto(d) for d in servicio.listar_documentos(db, id_obra)]

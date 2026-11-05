@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from uuid import UUID
 
 from ..database import get_db
 from ..models import Exposicion
@@ -35,16 +36,16 @@ def listar_exposiciones(limit: int = Query(50, ge=1, le=200), db: Session = Depe
 
 
 @router.get("/{exposicion_id}", response_model=ExposicionOut)
-def obtener_exposicion(exposicion_id: int, db: Session = Depends(get_db)):
+def obtener_exposicion(exposicion_id: UUID, db: Session = Depends(get_db)):
     return servicio.a_dto(servicio.obtener_exposicion(db, exposicion_id))
 
 @router.get("/{exposicion_id}/virtual/validacion")
-def validar_publicacion_virtual(exposicion_id: int, db: Session = Depends(get_db)):
+def validar_publicacion_virtual(exposicion_id: UUID, db: Session = Depends(get_db)):
     return servicio_virtual.validar_publicacion(db, exposicion_id)
 
 
 @router.post("/{exposicion_id}/virtual/publicar")
 def publicar_virtual(
-    exposicion_id: int, datos: PublicarVirtualIn, db: Session = Depends(get_db)
+    exposicion_id: UUID, datos: PublicarVirtualIn, db: Session = Depends(get_db)
 ):
     return servicio_virtual.publicar(db, exposicion_id, datos.solo_digitalizadas)

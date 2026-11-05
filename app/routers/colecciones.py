@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from uuid import UUID
 
 from ..database import get_db
 from ..models import Coleccion
@@ -28,10 +29,10 @@ def listar_colecciones(
 
 
 @router.get("/{coleccion_id}", response_model=ColeccionOut)
-def obtener_coleccion(coleccion_id: int, db: Session = Depends(get_db)):
+def obtener_coleccion(coleccion_id: UUID, db: Session = Depends(get_db)):
     return servicio.a_dto(servicio.obtener_coleccion(db, coleccion_id))
 
 
 @router.put("/{coleccion_id}", response_model=ColeccionOut)
-def actualizar_coleccion(coleccion_id: int, datos: ColeccionIn, db: Session = Depends(get_db)):
+def actualizar_coleccion(coleccion_id: UUID, datos: ColeccionIn, db: Session = Depends(get_db)):
     return servicio.a_dto(servicio.actualizar_coleccion(db, coleccion_id, datos))

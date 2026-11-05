@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from uuid import UUID
 
 from ..database import get_db
 from ..models import Obra
@@ -26,9 +27,9 @@ def listar_obras(
 
 
 @router.get("/{obra_id}", response_model=ObraOut)
-def obtener_obra(obra_id: int, db: Session = Depends(get_db)):
+def obtener_obra(obra_id: UUID, db: Session = Depends(get_db)):
     return servicio.a_dto(servicio.obtener_obra(db, obra_id))
 
 @router.put("/{obra_id}", response_model=ObraOut)
-def actualizar_obra(obra_id: int, datos: ObraIn, db: Session = Depends(get_db)):
+def actualizar_obra(obra_id: UUID, datos: ObraIn, db: Session = Depends(get_db)):
     return servicio.a_dto(servicio.actualizar_obra(db, obra_id, datos))

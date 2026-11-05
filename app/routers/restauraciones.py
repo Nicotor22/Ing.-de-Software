@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from uuid import UUID
 
 from ..database import get_db
 from ..models import EstadoRestauracion, Restauracion
@@ -31,16 +32,16 @@ def listar_restauraciones(
 
 
 @router.get("/{restauracion_id}", response_model=RestauracionOut)
-def obtener_restauracion(restauracion_id: int, db: Session = Depends(get_db)):
+def obtener_restauracion(restauracion_id: UUID, db: Session = Depends(get_db)):
     return servicio.a_dto(servicio.obtener_restauracion(db, restauracion_id))
 
 
 @router.post("/{restauracion_id}/informe", response_model=RestauracionOut)
-def adjuntar_informe(restauracion_id: int, archivo: ArchivoIn, db: Session = Depends(get_db)):
+def adjuntar_informe(restauracion_id: UUID, archivo: ArchivoIn, db: Session = Depends(get_db)):
     return servicio.a_dto(servicio.adjuntar_informe(db, restauracion_id, archivo))
 
 @router.post("/{restauracion_id}/regreso", response_model=RestauracionOut)
 def registrar_regreso(
-    restauracion_id: int, datos: RegresoRestauracionIn, db: Session = Depends(get_db)
+    restauracion_id: UUID, datos: RegresoRestauracionIn, db: Session = Depends(get_db)
 ):
     return servicio.a_dto(servicio.registrar_regreso(db, restauracion_id, datos))

@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, Query, Response
 from sqlalchemy.orm import Session
+from uuid import UUID
 
 from ..database import get_db
 from ..schemas import ReporteOut
@@ -9,7 +10,7 @@ router = APIRouter(prefix="/reportes", tags=["CU-11 - Reporte patrimonial"])
 
 
 def _filtros(
-    autor_id: int | None = Query(None, description="Filtrar por autor"),
+    autor_id: UUID | None = Query(None, description="Filtrar por autor"),
     periodo: str | None = Query(None, description="Filtrar por período de la obra"),
     tecnica: str | None = Query(None, description="Filtrar por técnica (texto parcial)"),
     exposicion_id: int | None = Query(None, description="Filtrar por exposición"),

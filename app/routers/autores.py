@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from uuid import UUID
 
 from ..database import get_db
 from ..models import Autor
@@ -30,7 +31,7 @@ def listar_autores(
 
 
 @router.get("/{autor_id}", response_model=AutorOut)
-def obtener_autor(autor_id: int, db: Session = Depends(get_db)):
+def obtener_autor(autor_id: UUID, db: Session = Depends(get_db)):
     autor = db.get(Autor, autor_id)
     if autor is None:
         raise HTTPException(status_code=404, detail="El autor no existe")
@@ -38,7 +39,7 @@ def obtener_autor(autor_id: int, db: Session = Depends(get_db)):
 
 @router.put("/{autor_id}", response_model=AutorOut)
 def actualizar_autor(
-    autor_id: int,
+    autor_id: UUID,
     datos: AutorIn,
     confirmar_duplicado: bool = False,
     db: Session = Depends(get_db),

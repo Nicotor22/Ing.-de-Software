@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select, func
 from sqlalchemy.orm import Session
+from uuid import UUID
 
 from ..database import get_db
 from ..models import Ubicacion
@@ -46,7 +47,7 @@ def listar_ubicaciones(
 
 
 @router.get("/{ubicacion_id}", response_model=UbicacionOut)
-def obtener_ubicacion(ubicacion_id: int, db: Session = Depends(get_db)):
+def obtener_ubicacion(ubicacion_id: UUID, db: Session = Depends(get_db)):
     ubicacion = db.get(Ubicacion, ubicacion_id)
     if ubicacion is None:
         raise HTTPException(status_code=404, detail="la ubicacion no existe")

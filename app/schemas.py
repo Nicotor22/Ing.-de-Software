@@ -1,6 +1,7 @@
 from datetime import date
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from .models import EstadoPrestamo, TipoPrestamo, EstadoRestauracion
+from uuid import UUID
 
 FORMATOS_DOCUMENTO = {"JPG", "PNG", "PDF"}
 
@@ -23,18 +24,18 @@ class AutorIn(BaseModel):
 
 class AutorOut(AutorIn):
     model_config = ConfigDict(from_attributes=True)
-    id: int
+    id: UUID
 
 class UbicacionIn(BaseModel):
     nombre: str = Field(min_length=1, max_length=200)
 
 class UbicacionOut(UbicacionIn):
     model_config = ConfigDict(from_attributes=True)
-    id: int
+    id: UUID
 
 class AutorObraIn(BaseModel):
     """Un autor dentro de una obra. Las fechas son de la relación (modelo de tu equipo)."""
-    id_autor: int
+    id_autor: UUID
     fecha_creacion: date | None = None
     fecha_finalizacion: date | None = None
 
@@ -57,19 +58,19 @@ class ObraIn(BaseModel):
     periodo: str | None = Field(default=None, max_length=100)
     estado_conservacion: str | None = Field(default=None, max_length=100)
     modo_ingreso: str | None = Field(default=None, max_length=100)
-    id_ubicacion_actual: int
+    id_ubicacion_actual: UUID
     autores: list[AutorObraIn] = Field(min_length=1)  # extensión: al menos un autor
 
 
 class AutorEnObraOut(BaseModel):
-    id_autor: int
+    id_autor: UUID
     nombre: str
     fecha_creacion: date | None = None
     fecha_finalizacion: date | None = None
 
 
 class ObraOut(BaseModel):
-    id: int
+    id: UUID
     titulo: str | None = None
     tecnica: str | None = None
     alto: float | None = None
@@ -79,15 +80,15 @@ class ObraOut(BaseModel):
     estado_conservacion: str | None = None
     modo_ingreso: str | None = None
     digitalizada: bool
-    id_coleccion: int | None = None
-    id_ubicacion_actual: int
+    id_coleccion: UUID | None = None
+    id_ubicacion_actual: UUID
     autores: list[AutorEnObraOut]
 
 class MovimientoIn(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
-    id_obra: int
-    id_ubicacion_destino: int
+    id_obra: UUID
+    id_ubicacion_destino: UUID
     motivo: str = Field(min_length=1, max_length=300)
     responsable: str = Field(min_length=1, max_length=150)
 
@@ -95,10 +96,10 @@ class MovimientoIn(BaseModel):
 class MovimientoOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
-    id_obra: int
-    id_ubicacion_origen: int
-    id_ubicacion_destino: int
+    id: UUID
+    id_obra: UUID
+    id_ubicacion_origen: UUID
+    id_ubicacion_destino: UUID
     fecha: date
     motivo: str
     responsable: str
@@ -108,16 +109,16 @@ class ColeccionIn(BaseModel):
 
     nombre: str = Field(min_length=1, max_length=150)
     descripcion: str | None = None
-    obra_ids: list[int] = Field(min_length=1)  # extensión: al menos una obra
+    obra_ids: list[UUID] = Field(min_length=1)  # extensión: al menos una obra
 
 
 class ObraEnColeccionOut(BaseModel):
-    id_obra: int
+    id_obra: UUID
     titulo: str | None = None
 
 
 class ColeccionOut(BaseModel):
-    id: int
+    id: UUID
     nombre: str
     descripcion: str | None = None
     obras: list[ObraEnColeccionOut]
@@ -140,14 +141,14 @@ class ArchivoIn(BaseModel):
 
 
 class DocumentoIn(ArchivoIn):
-    id_obra: int
-    id_tipo_documento: int  # obligatorio: si no encaja en ninguno, se usa "Otro"
+    id_obra: UUID
+    id_tipo_documento: UUID  # obligatorio: si no encaja en ninguno, se usa "Otro"
 
 
 class DocumentoOut(BaseModel):
-    id: int
-    id_obra: int
-    id_tipo_documento: int
+    id: UUID
+    id_obra: UUID
+    id_tipo_documento: UUID
     tipo: str
     url: str
     formato: str
@@ -156,7 +157,7 @@ class DocumentoOut(BaseModel):
 class TipoDocumentoOut(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    id: int
+    id: UUID
     nombre: str
 
 class ObraCreateIn(ObraIn):
@@ -171,10 +172,10 @@ class PrestamoIn(BaseModel):
     fecha_inicio: date
     fecha_devolucion_prevista: date
     condiciones: str = Field(min_length=1)
-    id_ubicacion_destino: int
+    id_ubicacion_destino: UUID
     responsable: str = Field(min_length=1, max_length=150)  # provisorio hasta CU-14
-    obra_ids: list[int] = Field(default_factory=list)
-    coleccion_ids: list[int] = Field(default_factory=list)
+    obra_ids: list[UUID] = Field(default_factory=list)
+    coleccion_ids: list[UUID] = Field(default_factory=list)
     documentacion: ArchivoIn | None = None
 
     @model_validator(mode="after")
@@ -189,12 +190,12 @@ class PrestamoIn(BaseModel):
 
 
 class ObraEnPrestamoOut(BaseModel):
-    id_obra: int
+    id_obra: UUID
     titulo: str | None = None
 
 
 class PrestamoOut(BaseModel):
-    id: int
+    id: UUID
     tipo: TipoPrestamo
     nombre_prestatario: str | None = None
     contacto_prestatario: str | None = None
@@ -217,9 +218,9 @@ class ExposicionIn(BaseModel):
     nombre: str = Field(min_length=1, max_length=200)
     fecha_inicio: date
     fecha_fin: date
-    id_ubicacion: int
-    obra_ids: list[int] = Field(default_factory=list)
-    coleccion_ids: list[int] = Field(default_factory=list)
+    id_ubicacion: UUID
+    obra_ids: list[UUID] = Field(default_factory=list)
+    coleccion_ids: list[UUID] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def validar_exposicion(self):
@@ -231,22 +232,22 @@ class ExposicionIn(BaseModel):
 
 
 class ObraEnExposicionOut(BaseModel):
-    id_obra: int
+    id_obra: UUID
     titulo: str | None = None
 
 
 class ObraExcluidaOut(BaseModel):
-    id_obra: int
+    id_obra: UUID
     titulo: str | None = None
     motivo: str
 
 
 class ExposicionOut(BaseModel):
-    id: int
+    id: UUID
     nombre: str
     fecha_inicio: date
     fecha_fin: date
-    id_ubicacion: int
+    id_ubicacion: UUID
     publicada_virtual: bool
     obras: list[ObraEnExposicionOut]
 
@@ -265,12 +266,12 @@ class ExposicionCreadaOut(BaseModel):
 class RestauracionIn(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
-    id_obra: int
+    id_obra: UUID
     fecha_inicio: date
     fecha_prevista_devolucion: date
     tecnica_aplicada: str = Field(min_length=1, max_length=200)
     responsable: str = Field(min_length=1, max_length=150)
-    id_ubicacion_destino: int  # taller o laboratorio al que va la obra
+    id_ubicacion_destino: UUID  # taller o laboratorio al que va la obra
     informe: ArchivoIn | None = None  # sin informe = "informe pendiente"
 
     @model_validator(mode="after")
@@ -281,22 +282,22 @@ class RestauracionIn(BaseModel):
 
 
 class RestauracionOut(BaseModel):
-    id: int
-    id_obra: int
+    id: UUID
+    id_obra: UUID
     fecha_inicio: date
     fecha_prevista_devolucion: date
     fecha_regreso_real: date | None = None
     tecnica_aplicada: str
     responsable: str
     estado: EstadoRestauracion
-    id_documento_informe: int | None = None
+    id_documento_informe: UUID | None = None
     informe_pendiente: bool
 
 class RegresoRestauracionIn(BaseModel):
     model_config = ConfigDict(str_strip_whitespace=True)
 
     fecha_regreso_real: date
-    id_ubicacion_destino: int  # sala o depósito al que vuelve la obra
+    id_ubicacion_destino: UUID  # sala o depósito al que vuelve la obra
     responsable: str = Field(min_length=1, max_length=150)  # provisorio hasta CU-15
 
 class DigitalizacionIn(ArchivoIn):
@@ -318,7 +319,7 @@ class ReporteOut(BaseModel):
     vacio: bool
     mensaje: str | None = None
     advertencias: list[str] = []
-    filtros: dict[str, str | int] = {}
+    filtros: dict[str, str] = {}
     generado_en: str
     total: int
     filas: list[ReporteFilaOut]
@@ -329,8 +330,8 @@ class PublicarVirtualIn(BaseModel):
     solo_digitalizadas: bool = False
 
 class UsuarioOut(BaseModel):
-    id: int
+    id: UUID
     id_externo: str
     nombre: str | None = None
-    id_rol: int
+    id_rol: UUID
     rol: str

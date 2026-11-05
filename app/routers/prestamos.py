@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from uuid import UUID
 
 from ..database import get_db
 from ..models import EstadoPrestamo, Prestamo
@@ -28,9 +29,9 @@ def listar_prestamos(
 
 
 @router.get("/{prestamo_id}", response_model=PrestamoOut)
-def obtener_prestamo(prestamo_id: int, db: Session = Depends(get_db)):
+def obtener_prestamo(prestamo_id: UUID, db: Session = Depends(get_db)):
     return servicio.a_dto(servicio.obtener_prestamo(db, prestamo_id))
 
 @router.post("/{prestamo_id}/devolucion", response_model=PrestamoOut)
-def registrar_devolucion(prestamo_id: int, datos: DevolucionIn, db: Session = Depends(get_db)):
+def registrar_devolucion(prestamo_id: UUID, datos: DevolucionIn, db: Session = Depends(get_db)):
     return servicio.a_dto(servicio.registrar_devolucion(db, prestamo_id, datos))
