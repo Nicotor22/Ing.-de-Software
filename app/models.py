@@ -7,11 +7,11 @@ from sqlalchemy import Boolean, Date, Float, ForeignKey, String, Text, Numeric, 
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy.dialects.postgresql import ENUM as PGEnum
-
+from .ids import uuid7
 from .database import Base
 
 def pk(nombre_columna: str):
-    return mapped_column(nombre_columna, primary_key=True, default=uuid)
+    return mapped_column(nombre_columna, primary_key=True, default=uuid7)
 
 
 class EstadoConservacion(str, enum.Enum):
@@ -224,6 +224,6 @@ class Usuario(Base):
     id: Mapped[uuid.UUID] = pk("id_usuario")
     id_externo: Mapped[str] = mapped_column(String(36), unique=True)  # el "sub" de Authly
     nombre: Mapped[str | None] = mapped_column(String(150), nullable=True)
-    id_rol: Mapped[uuid.UUID]
+    id_rol: Mapped[uuid.UUID]= mapped_column(ForeignKey("rol.id_rol"))
 
     rol: Mapped[Rol] = relationship()
