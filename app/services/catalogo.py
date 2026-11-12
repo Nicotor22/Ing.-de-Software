@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session, selectinload
 
 from ..auth import ROL_ADMIN, ROL_INVESTIGADOR, ROL_PUBLICO
 from ..models import Documento, Obra, ObraAutor, Exposicion
+from .documentos import formato_desde_url
 
 MENSAJE_SIN_RESULTADOS = (
     "No hay obras que coincidan con los filtros aplicados. "
@@ -35,7 +36,7 @@ def a_dto(obra: Obra, rol: str) -> dict:
         "autores": [oa.autor.nombre for oa in obra.autores],
         "periodo": obra.periodo,
         "documentos": [
-            {"tipo": d.tipo.nombre, "url": d.url, "formato": d.formato}
+            {"tipo": d.tipo.nombre, "url": d.url, "formato": formato_desde_url(d.url)}
             for d in obra.documentos
             if visibles is None or d.tipo.nombre in visibles
         ],

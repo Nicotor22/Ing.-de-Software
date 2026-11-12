@@ -18,7 +18,11 @@ def a_dto(r: Restauracion) -> dict:
         "fecha_regreso_real": r.fecha_regreso_real,
         "tecnica_aplicada": r.tecnica_aplicada,
         "responsable": r.responsable,
-        "estado": r.estado,
+        "estado": (
+            EstadoRestauracion.ACTIVA
+            if r.fecha_regreso_real is None
+            else EstadoRestauracion.FINALIZADA
+        ),
         "id_documento_informe": r.id_documento_informe,
         "informe_pendiente": r.id_documento_informe is None,
     }
@@ -58,7 +62,6 @@ def registrar_restauracion(db: Session, datos: RestauracionIn) -> Restauracion:
         fecha_prevista_devolucion=datos.fecha_prevista_devolucion,
         tecnica_aplicada=datos.tecnica_aplicada,
         responsable=datos.responsable,
-        estado=EstadoRestauracion.ACTIVA,
     )
     try:
         db.add(restauracion)
@@ -118,9 +121,10 @@ def registrar_regreso(
         raise HTTPException(status_code=404, detail="La restauración no existe")
 
     # Paso 3 (extensión): tiene que estar activa
-    if restauracion.estado != EstadoRestauracion.ACTIVA:
+    if restauracion.fecha_regreso_real is not None:
         raise HTTPException(
-            status_code=409, detail="La restauración ya no está activa (fue finalizada antes)"
+            status_code=409,
+            detail="La restauración ya no está activa (fue finalizada antes)",
         )
     if datos.fecha_regreso_real < restauracion.fecha_inicio:
         raise HTTPException(
@@ -143,7 +147,6 @@ def registrar_regreso(
             db, obra, datos.id_ubicacion_destino,
             f"Regreso de la restauración n.º {restauracion.id}", datos.responsable,
         )
-        restauracion.estado = EstadoRestauracion.FINALIZADA
         restauracion.fecha_regreso_real = datos.fecha_regreso_real
         db.commit()
     except SQLAlchemyError:

@@ -24,11 +24,14 @@ def restauracion_en_curso(db: Session, id_obra: int) -> dict | None:
     restauracion = db.scalars(
         select(Restauracion).where(
             Restauracion.id_obra == id_obra,
-            Restauracion.estado == EstadoRestauracion.ACTIVA,
+            Restauracion.fecha_regreso_real.is_(None),
+            Restauracion.fecha_baja.is_(None),
         )
     ).first()
+
     if restauracion is None:
         return None
+
     return {"fecha_prevista": restauracion.fecha_prevista_devolucion}
 
 

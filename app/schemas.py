@@ -164,7 +164,7 @@ class DocumentoOut(BaseModel):
     id_tipo_documento: UUID
     tipo: str
     url: str
-    formato: str
+    formato: str | None = None
 
 
 class TipoDocumentoOut(BaseModel):

@@ -11,6 +11,11 @@ TIPO_PRESTAMO = "Documentación de Préstamo"  # tiene que coincidir con el nomb
 TIPO_INFORME = "Informe de Restauración"  # tiene que coincidir con el nombre precargado
 TIPO_FOTO = "Foto"  # tiene que coincidir con el nombre precargado
 
+def formato_desde_url(url: str) -> str | None:
+    """El formato ya no se guarda: se deduce de la extensión de la URL."""
+    partes = url.split("?")[0].rsplit(".", 1)
+    extension = partes[-1].lower() if len(partes) == 2 else ""
+    return {"jpg": "JPG", "jpeg": "JPG", "png": "PNG", "pdf": "PDF"}.get(extension)
 
 def a_dto(doc: Documento) -> dict:
     return {
@@ -19,7 +24,7 @@ def a_dto(doc: Documento) -> dict:
         "id_tipo_documento": doc.id_tipo_documento,
         "tipo": doc.tipo.nombre,
         "url": doc.url,
-        "formato": doc.formato,
+        "formato": formato_desde_url(doc.url),
     }
 
 
@@ -49,15 +54,15 @@ def id_tipo_por_nombre(db: Session, nombre: str) -> int:
 
 
 def agregar_documento(
-    db: Session, obra: Obra, id_tipo: int, url: str, formato: str
+    db: Session, obra: Obra, id_tipo, url: str, formato: str | None = None
 ) -> Documento:
     """
-    Paso 6 del CU-03. NO hace commit: lo hace quien la llama, para que todo ocurra en una
-    sola transacción (la reutilizan Gestionar Obra y, más adelante, Préstamo y Restauración).
+    Paso 6 del CU-03. NO hace commit: lo hace quien la llama.
+    El formato se valida en el schema de entrada, pero ya no se guarda: se deduce de la URL.
     """
     if db.get(TipoDocumento, id_tipo) is None:
         raise HTTPException(status_code=404, detail="El tipo de documento no existe")
-    documento = Documento(id_tipo_documento=id_tipo, url=url, formato=formato)
+    documento = Documento(id_tipo_documento=id_tipo, url=url)
     obra.documentos.append(documento)
     return documento
 

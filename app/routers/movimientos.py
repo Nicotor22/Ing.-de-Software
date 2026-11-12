@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
+from uuid import UUID
 
 from ..database import get_db
 from ..schemas import MovimientoIn, MovimientoOut
@@ -14,5 +15,5 @@ def registrar_movimiento(datos: MovimientoIn, db: Session = Depends(get_db)):
 
 
 @router.get("", response_model=list[MovimientoOut])
-def historial(id_obra: int | None = None, db: Session = Depends(get_db)):
+def historial(id_obra: UUID | None = None, db: Session = Depends(get_db)):
     return servicio.historial(db, id_obra)
