@@ -5,7 +5,7 @@ from ..models import Usuario
 from ..schemas import UsuarioOut
 from ..services import usuarios as servicio
 
-router = APIRouter(tags=["CU-15 - Usuarios y roles"])
+router = APIRouter(prefix="/usuarios", tags=["CU-15 - Usuarios y roles"])
 
 
 @router.get("/yo", response_model=UsuarioOut)

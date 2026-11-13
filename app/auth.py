@@ -63,6 +63,12 @@ def usuario_actual(
     return usuario
 
 
-def rol_actual(usuario: Usuario = Depends(usuario_actual)) -> str:
-    """Es lo que usa el catálogo (CU-13): no hace falta tocar ese código."""
+def rol_actual(
+    credenciales: HTTPAuthorizationCredentials | None = Depends(esquema_bearer),
+    db: Session = Depends(get_db),
+) -> str:
+    """Si no hay token devuelve ROL_PUBLICO; si hay token, valida y devuelve el rol del usuario."""
+    if credenciales is None:
+        return ROL_PUBLICO
+    usuario = usuario_actual(credenciales, db)
     return usuario.rol.nombre

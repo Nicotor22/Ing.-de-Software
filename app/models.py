@@ -148,7 +148,7 @@ class Prestamo(Base):
     id: Mapped[uuid.UUID] = pk("id_prestamo")
     nombre_prestatario: Mapped[str | None] = mapped_column(String(200), nullable=True)
     contacto_prestatario: Mapped[str | None] = mapped_column(String(200), nullable=True)
-    tipo: Mapped[TipoPrestamo] = mapped_column(SAEnum(TipoPrestamo, native_enum=False, length=20))
+    tipo: Mapped[TipoPrestamo] = mapped_column(enum_pg(TipoPrestamo,"tipo_ingreso_t"), nullable=True)
     fecha_inicio: Mapped[date] = mapped_column(Date)
     fecha_devolucion_prevista: Mapped[date] = mapped_column(Date)
     fecha_devolucion_real: Mapped[date | None] = mapped_column(Date, nullable=True)  # CU-07

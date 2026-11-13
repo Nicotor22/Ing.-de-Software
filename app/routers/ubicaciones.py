@@ -7,7 +7,7 @@ from ..database import get_db
 from ..models import Ubicacion
 from ..schemas import UbicacionIn, UbicacionOut
 
-router = APIRouter(prefix="/Ubicaciones", tags=["Carga de datos - Ubicaciones"])
+router = APIRouter(prefix="/ubicaciones", tags=["Carga de datos - Ubicaciones"])
 
 @router.post("", response_model=UbicacionOut, status_code=201)
 def crear_ubicacion(
@@ -23,7 +23,7 @@ def crear_ubicacion(
         raise HTTPException(
             status_code=409,
             detail={
-                "mensaje": "Ya existe un autor con ese nombre",
+                "mensaje": "Ya existe una ubicacion con ese nombre",
                 "ubicacion_existente": {"id": existente.id, "nombre": existente.nombre},
             },
         )
