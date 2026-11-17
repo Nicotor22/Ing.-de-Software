@@ -1,0 +1,351 @@
+import enum
+
+from datetime import date
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from .models import EstadoConservacion, TipoPrestamo, ModoIngreso
+from uuid import UUID
+
+
+FORMATOS_DOCUMENTO = {"JPG", "PNG", "PDF"}
+
+
+class EstadoPrestamo(str, enum.Enum):
+    ACTIVO = "ACTIVO"
+    FINALIZADO = "FINALIZADO"
+
+
+class EstadoRestauracion(str, enum.Enum):
+    ACTIVA = "ACTIVA"
+    FINALIZADA = "FINALIZADA"
+
+
+class AutorIn(BaseModel):
+    nombre: str = Field(min_length=1, max_length=200)
+    nacionalidad: str | None = None
+    periodo: str | None = None
+    tecnica_habitual: str | None=None
+    biografia: str | None=None
+
+    @field_validator("nombre")
+    @classmethod
+    def limpiar_nombre(cls, valor: str) -> str:
+        valor = valor.strip()
+        if not valor:
+            raise ValueError("El nombre es obligatorio")
+        return valor
+
+
+class AutorOut(AutorIn):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+
+class UbicacionIn(BaseModel):
+    nombre: str = Field(min_length=1, max_length=200)
+
+class UbicacionOut(UbicacionIn):
+    model_config = ConfigDict(from_attributes=True)
+    id: UUID
+
+class AutorObraIn(BaseModel):
+    """Un autor dentro de una obra. Las fechas son de la relación (modelo de tu equipo)."""
+    id_autor: UUID
+    fecha_creacion: date | None = None
+    fecha_finalizacion: date | None = None
+
+    @model_validator(mode="after")
+    def fechas_coherentes(self):
+        if (self.fecha_creacion and self.fecha_finalizacion
+                and self.fecha_finalizacion < self.fecha_creacion):
+            raise ValueError("La fecha de finalización no puede ser anterior a la de creación")
+        return self
+
+
+class ObraIn(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    titulo: str = Field(min_length=1, max_length=255)
+    tecnica: str | None = Field(default=None, max_length=150)
+    alto: float | None = Field(default=None, gt=0)
+    ancho: float | None = Field(default=None, gt=0)
+    profundidad: float | None = Field(default=None, gt=0)
+    periodo: str | None = Field(default=None, max_length=100)
+    estado_conservacion: EstadoConservacion
+    modo_ingreso: ModoIngreso
+    id_ubicacion_actual: UUID
+    autores: list[AutorObraIn] = Field(min_length=1)  # extensión: al menos un autor
+
+
+class AutorEnObraOut(BaseModel):
+    id_autor: UUID
+    nombre: str
+    fecha_creacion: date | None = None
+    fecha_finalizacion: date | None = None
+
+
+class ObraOut(BaseModel):
+    id: UUID
+    titulo: str | None = None
+    tecnica: str | None = None
+    alto: float | None = None
+    ancho: float | None = None
+    profundidad: float | None = None
+    periodo: str | None = None
+    estado_conservacion: EstadoConservacion
+    modo_ingreso: ModoIngreso
+    digitalizada: bool
+    id_coleccion: UUID | None = None
+    id_ubicacion_actual: UUID
+    imagen_url: str | None = None
+    autores: list[AutorEnObraOut]
+
+class MovimientoIn(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    id_obra: UUID
+    id_ubicacion_destino: UUID
+    motivo: str = Field(min_length=1, max_length=255)
+    responsable: str = Field(min_length=1, max_length=150)
+
+
+class MovimientoOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    id_obra: UUID
+    id_ubicacion_origen: UUID
+    id_ubicacion_destino: UUID
+    fecha: date
+    motivo: str
+    responsable: str
+
+class ColeccionIn(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    nombre: str = Field(min_length=1, max_length=150)
+    descripcion: str | None = None
+    obra_ids: list[UUID] = Field(min_length=1)  # extensión: al menos una obra
+
+
+class ObraEnColeccionOut(BaseModel):
+    id_obra: UUID
+    titulo: str | None = None
+
+
+class ColeccionOut(BaseModel):
+    id: UUID
+    nombre: str
+    descripcion: str | None = None
+    obras: list[ObraEnColeccionOut]
+
+class ArchivoIn(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    url: str = Field(pattern=r"^https?://", max_length=500)
+    formato: str
+
+    @field_validator("formato")
+    @classmethod
+    def validar_formato(cls, valor: str) -> str:
+        normalizado = valor.upper().lstrip(".")
+        if normalizado == "JPEG":
+            normalizado = "JPG"
+        if normalizado not in FORMATOS_DOCUMENTO:
+            raise ValueError("Formato no soportado. Formatos válidos: JPG, PNG y PDF")
+        return normalizado
+
+
+class DocumentoIn(ArchivoIn):
+    id_obra: UUID
+    id_tipo_documento: UUID  # obligatorio: si no encaja en ninguno, se usa "Otro"
+
+
+class DocumentoOut(BaseModel):
+    id: UUID
+    id_obra: UUID
+    id_tipo_documento: UUID
+    tipo: str
+    url: str
+    formato: str | None = None
+
+
+class TipoDocumentoOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    nombre: str
+
+class ObraCreateIn(ObraIn):
+    acta_donacion: ArchivoIn | None = None  # opcional: no toda obra es una donación
+
+class PrestamoIn(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    tipo: TipoPrestamo
+    nombre_prestatario: str = Field(min_length=1, max_length=200)
+    contacto_prestatario: str | None = Field(default=None, max_length=200)
+    fecha_inicio: date
+    fecha_devolucion_prevista: date
+    condiciones: str = Field(min_length=1)
+    id_ubicacion_destino: UUID
+    responsable: str = Field(min_length=1, max_length=150)  # provisorio hasta CU-14
+    obra_ids: list[UUID] = Field(default_factory=list)
+    coleccion_ids: list[UUID] = Field(default_factory=list)
+    documentacion: ArchivoIn | None = None
+
+    @model_validator(mode="after")
+    def validar_prestamo(self):
+        if self.fecha_devolucion_prevista < self.fecha_inicio:
+            raise ValueError("La fecha de devolución prevista no puede ser anterior a la de inicio")
+        if not self.obra_ids and not self.coleccion_ids:
+            raise ValueError("Hay que seleccionar al menos una obra o una colección")
+        if self.tipo == TipoPrestamo.INTERINSTITUCIONAL and self.documentacion is None:
+            raise ValueError("El préstamo interinstitucional requiere adjuntar documentación")
+        return self
+
+
+class ObraEnPrestamoOut(BaseModel):
+    id_obra: UUID
+    titulo: str | None = None
+
+
+class PrestamoOut(BaseModel):
+    id: UUID
+    tipo: TipoPrestamo
+    nombre_prestatario: str | None = None
+    contacto_prestatario: str | None = None
+    fecha_inicio: date
+    fecha_devolucion_prevista: date
+    fecha_devolucion_real: date | None = None
+    condiciones: str
+    estado: EstadoPrestamo
+    obras: list[ObraEnPrestamoOut]
+
+class DevolucionIn(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    fecha_devolucion_real: date
+    responsable: str = Field(min_length=1, max_length=150)  # provisorio hasta CU-15
+
+class ExposicionIn(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    nombre: str = Field(min_length=1, max_length=200)
+    fecha_inicio: date
+    fecha_fin: date
+    id_ubicacion: UUID
+    obra_ids: list[UUID] = Field(default_factory=list)
+    coleccion_ids: list[UUID] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validar_exposicion(self):
+        if self.fecha_fin < self.fecha_inicio:
+            raise ValueError("La fecha de fin no puede ser anterior a la de inicio")
+        if not self.obra_ids and not self.coleccion_ids:
+            raise ValueError("Hay que seleccionar al menos una obra o una colección")
+        return self
+
+
+class ObraEnExposicionOut(BaseModel):
+    id_obra: UUID
+    titulo: str | None = None
+
+
+class ObraExcluidaOut(BaseModel):
+    id_obra: UUID
+    titulo: str | None = None
+    motivo: str
+
+
+class ExposicionOut(BaseModel):
+    id: UUID
+    nombre: str
+    fecha_inicio: date
+    fecha_fin: date
+    id_ubicacion: UUID
+    publicada_virtual: bool
+    obras: list[ObraEnExposicionOut]
+
+
+class ValidacionExposicionOut(BaseModel):
+    incluidas: list[ObraEnExposicionOut]
+    excluidas: list[ObraExcluidaOut]
+    advertencias: list[str]
+
+
+class ExposicionCreadaOut(BaseModel):
+    exposicion: ExposicionOut
+    excluidas: list[ObraExcluidaOut]
+    advertencias: list[str]
+
+class RestauracionIn(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    id_obra: UUID
+    fecha_inicio: date
+    fecha_prevista_devolucion: date
+    tecnica_aplicada: str = Field(min_length=1, max_length=200)
+    responsable: str = Field(min_length=1, max_length=150)
+    id_ubicacion_destino: UUID  # taller o laboratorio al que va la obra
+    informe: ArchivoIn | None = None  # sin informe = "informe pendiente"
+
+    @model_validator(mode="after")
+    def fechas_coherentes(self):
+        if self.fecha_prevista_devolucion < self.fecha_inicio:
+            raise ValueError("La fecha prevista de devolución no puede ser anterior a la de inicio")
+        return self
+
+
+class RestauracionOut(BaseModel):
+    id: UUID
+    id_obra: UUID
+    fecha_inicio: date
+    fecha_prevista_devolucion: date
+    fecha_regreso_real: date | None = None
+    tecnica_aplicada: str
+    responsable: str
+    estado: EstadoRestauracion
+    id_documento_informe: UUID | None = None
+    informe_pendiente: bool
+
+class RegresoRestauracionIn(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    fecha_regreso_real: date
+    id_ubicacion_destino: UUID  # sala o depósito al que vuelve la obra
+    responsable: str = Field(min_length=1, max_length=150)  # provisorio hasta CU-15
+
+class DigitalizacionIn(ArchivoIn):
+    # PROVISORIO: solo sirven para validar la calidad y no se guardan (Documento no tiene
+    # esas columnas). Cuando el backend reciba el archivo, los va a medir él.
+    ancho_px: int = Field(gt=0)
+    alto_px: int = Field(gt=0)
+
+class ReporteFilaOut(BaseModel):
+    obra: str
+    autores: str
+    periodo: str
+    tecnica: str
+    estado_conservacion: str
+    digitalizada: str
+
+
+class ReporteOut(BaseModel):
+    vacio: bool
+    mensaje: str | None = None
+    advertencias: list[str] = []
+    filtros: dict[str, str] = {}
+    generado_en: str
+    total: int
+    filas: list[ReporteFilaOut]
+
+class PublicarVirtualIn(BaseModel):
+    # False: si faltan obras por digitalizar, se advierte y no se publica.
+    # True: se publica solo con las obras digitalizadas.
+    solo_digitalizadas: bool = False
+
+class UsuarioOut(BaseModel):
+    id: UUID
+    id_externo: str
+    nombre: str | None = None
+    id_rol: UUID
+    rol: str
